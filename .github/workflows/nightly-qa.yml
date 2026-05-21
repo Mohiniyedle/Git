@@ -1,34 +1,66 @@
-name: Nightly QA Suite
+name: Selenium QA Automation
 
 on:
   repository_dispatch:
-    types: [nightly-ci]
+    types: [run-qa-suite]
 
 jobs:
-  run-tests:
+  selenium-tests:
     runs-on: ubuntu-latest
+
     steps:
+
+      # Checkout repository
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      # Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          ref: ${{ github.event.client_payload.ref || 'main' }}
+          python-version: '3.11'
 
-      - name: Execute QA Automation
+      # Install Google Chrome
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      # Install ChromeDriver
+      - name: Install ChromeDriver
+        uses: nanasess/setup-chromedriver@v2
+
+      # Verify installations
+      - name: Verify Chrome & Driver
         run: |
-          echo "Running automated test execution pipeline..."
-          # Add your test execution commands here (e.g., npm ci && npx playwright test)
-                - name: Execute QA Automation
-          run: |
-          echo "🚀 Initializing Automated QA Regression Suite..."
-          echo "🔄 Checking environment: ${{ github.event.client_payload.ref || 'main' }}"
-          
-          echo "⏱️ Running API validation tests..."
-          sleep 3
-          echo "✅ API Contract Verification: 45 passed, 0 failed."
-          
-          echo "🖥️ Running E2E UI Test Automation..."
-          sleep 5
-          echo "✅ UI Workflow Simulation: 12 passed, 0 failed."
-          
-          echo "🎉 All tests executed successfully!"
+          google-chrome --version
+          chromedriver --version
 
+      # Install Python dependencies
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          
+          # If requirements.txt exists
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+      # Create folders for reports/screenshots
+      - name: Create Result Directories
+        run: |
+          mkdir -p screenshots
+          mkdir -p reports
+
+      # Run Selenium Automation
+      - name: Execute Selenium Test Suite
+        run: |
+          pycharm test_login.py
+
+      # Upload screenshots and reports
+      - name: Upload Automation Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-results
+          path: |
+            screenshots/
+            reports/
